@@ -233,9 +233,9 @@ shinyServer(function(input, output, session) {
   #Plot output
   output$Modelplot <- renderPlot(
     if(input$modelSelect == "Multiple Linear"){
-      plot(plotModel()[[1]], which = 1)
+      plot(plotModel()[[1]], which = 1, main = "Multiple Linear Regression: Residuals vs Fitted Values")
     } else {
-      plot(summary(plotModel()[[1]]))
+      plot(summary(plotModel()[[1]]), main = "Boosted Trees Model: Relative Importance of Variables")
     }
   ) #end plot output
   
@@ -299,7 +299,7 @@ shinyServer(function(input, output, session) {
       }    
     }
     
-    return(list(fit, dfTest))
+    return(list(fit, dfTest, dfTrain))
     
   }) #end model plots reactive
   
@@ -328,26 +328,31 @@ shinyServer(function(input, output, session) {
     content = function(file) {
       png(file, width = 1200)
       if(input$modelSelect == "Multiple Linear"){
-        plot(plotModel()[[1]], which = 1)
+        plot(plotModel()[[1]], which = 1, main = "Multiple Linear Regression: Residuals vs Fitted Values")
       } else {
-        plot(summary(plotModel()[[1]]))
+        plot(summary(plotModel()[[1]]), main = "Boosted Trees Model: Relative Importance of Variables")
       }
       dev.off()
     }
   ) #end plot download handler
   
-  #data download handler
+  #data download handler (training data)
   output$downloadModelData <- downloadHandler(
     filename = function() {
-      paste("EPL", input$modelSelect, input$positionSelectModel, input$yearsModel, ".csv", sep ="_")
+      paste0("EPL_", input$modelSelect, "_training_data.csv")
     },
     content = function(file) {
-      if(input$modelSelect == "Multiple Linear"){
-        model <- summary(plotModel()[[1]])
-        write.csv(model[4], file, row.names = TRUE)
-      } else {
-        write.csv(summary(plotModel()[[1]]), file, row.names = TRUE)        
-      }
+        write.csv(plotModel()[[3]], file, row.names = FALSE)
+    }
+  ) #end data download handler
+  
+  #data download handler (testing data)
+  output$downloadTestData <- downloadHandler(
+    filename = function() {
+      paste0("EPL_", input$modelSelect, "_testing_data.csv")
+    },
+    content = function(file) {
+      write.csv(plotModel()[[2]], file, row.names = FALSE)
     }
   ) #end data download handler
   
@@ -448,16 +453,26 @@ shinyServer(function(input, output, session) {
       dataPCA <- PCs$x
     }
     
-    return(as.data.frame(dataPCA))
+    return(list(as.data.frame(dataPCA),PCAData))
   } #end PCA data download function
   
-  #data download handler
+  #data download handler (selected data)
   output$downloadPCAData <- downloadHandler(
     filename = function() {
       paste0("PCA_", input$PCAdataSelect, ".csv")
     },
     content = function(file) {
-      write.csv(getPCAData(), file, row.names = TRUE)
+      write.csv(getPCAData()[[1]], file, row.names = TRUE)
+    }
+  ) #end data download handler
+  
+  #data download handler (raw data)
+  output$downloadPCADataRaw <- downloadHandler(
+    filename = function() {
+      paste0("PCA_raw_data.csv")
+    },
+    content = function(file) {
+      write.csv(getPCAData()[[2]], file, row.names = FALSE)
     }
   ) #end data download handler
   

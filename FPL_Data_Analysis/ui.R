@@ -27,7 +27,7 @@ body <- dashboardBody(
                        h3("TL;DR"),
                        h4("The Fantasy Premier League (FPL) Data Analysis App allows users to explore and model Premier League player data."),
                        h3("Background"),
-                       h4("FPL is the Premier League's official fantasy competition, which tracks the actual Premier League player performances. FPL players assemble teams teams of 2 goalkeepers, 5 defenders, 5 midfielders, and 3 forwards keeping within a budget of GBP 100 million. Each week, FPL players assemble a team of their 11 best Premier League players. Points are accumulated for certain in-game acts such as goals and assists. The amount of points varies by position, and some positions have variables that apply only to them. As such, exploring data and analyzing data in this App is mostly confined to by-position groupings."),
+                       h4("FPL is the Premier League's official fantasy competition, which tracks the actual Premier League player performances. FPL players assemble teams teams of 2 goalkeepers, 5 defenders, 5 midfielders, and 3 forwards keeping within a budget of GBP 100 million. Each gameweek, FPL players put together a team of their 11 best Premier League players. Points are accumulated for certain in-game acts such as goals and assists. The amount of points accumulated varies by position, and some positions have variables that apply only to them. As such, exploring data and analyzing data in this App is mostly confined to by-position groupings."),
                        h4("The complete scoring rules can be found", tags$a(href="https://fantasy.premierleague.com/help/rules", "here."))
               ), 
               tabPanel("Data",
@@ -160,13 +160,14 @@ body <- dashboardBody(
                      box(width = 12, title = "Data Download Options",
                          selectInput("PCAdataSelect", "Select Data",
                                      choices = list("Importance of Components","Loadings","Rotated Data"), selected = "Importance of Components"),
-                         downloadButton("downloadPCAData", "Download Data")
+                         downloadButton("downloadPCAData", "Selected Data")
                      )
               ),
               column(9,
                      box(width = 14,
                          plotOutput("PCAplot", height = 500),
-                         downloadButton("downloadPCAPlot", "Download Plot")
+                         downloadButton("downloadPCAPlot", "Download Plot"),
+                         downloadButton("downloadPCADataRaw", "Raw Data")
                      ),
                      h4("Model Summary"),
                      verbatimTextOutput(("summaryPCA"))
@@ -224,7 +225,8 @@ body <- dashboardBody(
                      box(width = 14,
                          plotOutput("Modelplot", height = 500),
                          downloadButton("downloadModelPlot", "Download Plot"),
-                         downloadButton("downloadModelData", "Download Data")
+                         downloadButton("downloadModelData", "Training Data"),
+                         downloadButton("downloadTestData", "Testing Data")
                      ),
                      h4("Testing Data RMSE"),
                      verbatimTextOutput(("predictModel")),
