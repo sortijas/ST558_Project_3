@@ -296,11 +296,6 @@ shinyServer(function(input, output, session) {
     train <- train_test[[1]]
     test <- train_test[[2]]
     
-    # #scale data option
-    # if(center == 1) {
-    #   newDataModel <- scale(newDataModel)
-    # } 
-    
     #create separate training and test data frames
     dfTrain <- newDataModel[train, ]
     dfTest <- newDataModel[test, ]
@@ -319,10 +314,10 @@ shinyServer(function(input, output, session) {
     trctrl <- trainControl(method = "repeatedcv", number = input$folds, repeats = input$repeats)
     
     #tuning grid
-    gbmGrid <-  expand.grid(#interaction.depth = c(1, 5, 9), 
-                            n.trees = input$numTrees 
-                            #shrinkage = 0.1,
-                            #n.minobsinnode = 20
+    gbmGrid <-  expand.grid(interaction.depth = c(1, 5, 9), 
+                            n.trees = input$numTrees, 
+                            shrinkage = 0.1,
+                            n.minobsinnode = 20
                             )
     
     #fit models
@@ -395,7 +390,7 @@ shinyServer(function(input, output, session) {
       selected_by_percent <- input$selected_by_percent
       
       newData <- as.data.frame(cbind(total_points, now_cost, points_per_game, minutes, goals_scored, assists, bonus, bps, goals_conceded, own_goals, 
-                       penalties_missed, penalties_saved, yellow_cards, red_cards, saves, clean_sheets, creativity, ict_index, influence, threat))
+                       penalties_missed, penalties_saved, yellow_cards, red_cards, saves, clean_sheets, creativity, ict_index, influence, threat, selected_by_percent))
       
       fit<-plotModel()[[1]]
 

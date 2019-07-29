@@ -25,9 +25,9 @@ body <- dashboardBody(
             tabsetPanel(
               tabPanel("About",
                        h3("TL;DR"),
-                       h4("The Fantasy Premier League (FPL) Data Analysis App allows users to explore and model Premier League player data."),
+                       h4("The ", tags$a(href="https://fantasy.premierleague.com/", "Fantasy Premier League "), "(FPL) Data Analysis App allows users to explore and model historical and current FPL player data."),
                        h3("Background"),
-                       h4("FPL is the Premier League's official fantasy competition, which tracks the actual Premier League player performances. FPL players assemble teams teams of 2 goalkeepers, 5 defenders, 5 midfielders, and 3 forwards keeping within a budget of GBP 100 million. Each gameweek, FPL players put together a team of their 11 best Premier League players. Points are accumulated for certain in-game acts such as goals and assists. The amount of points accumulated varies by position, and some positions have variables that apply only to them. As such, exploring data and analyzing data in this App is mostly confined to by-position groupings."),
+                       h4("FPL is the Premier League's official fantasy sports competition which tracks the actual Premier League player performances. FPL players assemble teams teams of 2 goalkeepers, 5 defenders, 5 midfielders, and 3 forwards keeping within a budget of GBP 100 million. Each gameweek, FPL players put together a team of their 11 best Premier League players. Points are accumulated for certain in-game acts such as goals and assists. The amount of points accumulated varies by position, and some positions have variables that apply only to them. As such, exploring data and analyzing data in this App is mostly confined to by-position groupings."),
                        h4("The complete scoring rules can be found", tags$a(href="https://fantasy.premierleague.com/help/rules", "here."))
               ), 
               tabPanel("Data",
@@ -115,8 +115,8 @@ body <- dashboardBody(
                          plotOutput("explorePlot", height = 500,
                                     brush = brushOpts(id = "plot_brush")
                          ),
-                         downloadButton("downloadPlot", "Download Plot"),
-                         downloadButton("downloadData", "Download Data")
+                         downloadButton("downloadPlot", "Plot"),
+                         downloadButton("downloadData", "Data")
                      ),
                      conditionalPanel(
                        condition = "input.graphSelect == 'Scatterplot'",
@@ -151,10 +151,8 @@ body <- dashboardBody(
                            condition = "input.plotPCA == 'Biplot'",
                            selectInput("xVarPCA", "X-Axis Principal Component",
                                        choices = NULL),
-                           # choices = as.list(seq(1,19,1)), selected = 1),
                            selectInput("yVarPCA", "Y-Axis Principal Component",
                                        choices = NULL)
-                           #choices = as.list(seq(1,19,1)), selected = 2)
                          )
                      ),
                      box(width = 12, title = "Data Download Options",
@@ -166,7 +164,7 @@ body <- dashboardBody(
               column(9,
                      box(width = 14,
                          plotOutput("PCAplot", height = 500),
-                         downloadButton("downloadPCAPlot", "Download Plot"),
+                         downloadButton("downloadPCAPlot", "Plot"),
                          downloadButton("downloadPCADataRaw", "Raw Data")
                      ),
                      h4("Model Summary"),
@@ -201,7 +199,7 @@ body <- dashboardBody(
                                                          choices = NULL)
                                     ),
                                     sliderInput("train", "Training Data (% of data set)",
-                                                min = 50, max = 100, step = 5, value = 80),
+                                                min = 50, max = 100, step = 5, value = 90),
                                     conditionalPanel(
                                       condition = "input.modelSelect == 'Multiple Linear'",
                                       checkboxInput("varInteract", tags$b("Interact Variables"), value = FALSE)
@@ -225,7 +223,7 @@ body <- dashboardBody(
                          column(9,
                                 box(width = 14,
                                     plotOutput("Modelplot", height = 500),
-                                    downloadButton("downloadModelPlot", "Download Plot"),
+                                    downloadButton("downloadModelPlot", "Plot"),
                                     downloadButton("downloadModelData", "Training Data"),
                                     downloadButton("downloadTestData", "Testing Data")
                                 ),
@@ -300,7 +298,7 @@ body <- dashboardBody(
                      )
               ),
               column(9,
-                     downloadButton("dataDownload", "Download Table"),
+                     downloadButton("dataDownload", "Data"),
                      br(),
                      br(),
                      DTOutput("table")
