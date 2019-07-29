@@ -209,6 +209,46 @@ shinyServer(function(input, output, session) {
     updateCheckboxGroupInput(session, "varSelectModel", choices = varList, selected = varList[c(1,3:6)])
   }) #end independent variable user input
   
+  #player select
+  observe({
+    newDataModel <- epl %>% filter(position == input$positionSelectModel & year == input$yearsModel)
+    
+    #update player list
+    updateSelectInput(session, "playerSelectModel",
+                      choices = newDataModel$full_name %>% sort())
+  }) 
+  
+  #update players
+  playerData <- reactive({
+    epl %>% filter(full_name == input$playerSelectModel & year == input$yearsModel)
+  })
+  
+  
+  #update player values
+  observe({
+    selectPlayerData <- playerData()
+    updateNumericInput(session, "total_points", value = selectPlayerData$total_points)
+    updateNumericInput(session, "now_cost", value = as.numeric(selectPlayerData$now_cost))
+    updateNumericInput(session, "points_per_game", value = as.numeric(selectPlayerData$points_per_game))
+    updateNumericInput(session, "minutes", value = as.numeric(selectPlayerData$minutes))
+    updateNumericInput(session, "goals_scored", value = as.numeric(selectPlayerData$goals_scored))
+    updateNumericInput(session, "assists", value = as.numeric(selectPlayerData$assists))
+    updateNumericInput(session, "bonus", value = as.numeric(selectPlayerData$bonus))
+    updateNumericInput(session, "bps", value = as.numeric(selectPlayerData$bps))
+    updateNumericInput(session, "goals_conceded", value = as.numeric(selectPlayerData$goals_conceded))
+    updateNumericInput(session, "own_goals", value = as.numeric(selectPlayerData$own_goals))
+    updateNumericInput(session, "penalties_missed", value = as.numeric(selectPlayerData$penalties_missed))
+    updateNumericInput(session, "yellow_cards", value = as.numeric(selectPlayerData$yellow_cards))
+    updateNumericInput(session, "red_cards", value = as.numeric(selectPlayerData$red_cards))
+    updateNumericInput(session, "saves", value = as.numeric(selectPlayerData$saves))
+    updateNumericInput(session, "clean_sheets", value = as.numeric(selectPlayerData$clean_sheets))
+    updateNumericInput(session, "creativity", value = as.numeric(selectPlayerData$creativity))
+    updateNumericInput(session, "ict_index", value = as.numeric(selectPlayerData$ict_index))
+    updateNumericInput(session, "influence", value = as.numeric(selectPlayerData$influence))
+    updateNumericInput(session, "threat", value = as.numeric(selectPlayerData$threat))
+    updateNumericInput(session, "selected_by_percent", value = as.numeric(selectPlayerData$selected_by_percent))
+ })
+  
   #end model tab user inputs
   
   #training data set
@@ -235,7 +275,10 @@ shinyServer(function(input, output, session) {
     if(input$modelSelect == "Multiple Linear"){
       plot(plotModel()[[1]], which = 1, main = "Multiple Linear Regression: Residuals vs Fitted Values")
     } else {
-      plot(summary(plotModel()[[1]]), main = "Boosted Trees Model: Relative Importance of Variables")
+      fitModel <- plotModel()[[1]]
+      predictValues <- predict(fitModel)
+      actualValues <- fitModel$finalModel$data$y
+      plot(predictValues-actualValues, ylab = "Residuals", xlab = "Fitted Values", main = "Boosted Trees Model: Residuals vs Fitted Values"); abline(h=0, lty=2)
     }
   ) #end plot output
   
@@ -253,16 +296,16 @@ shinyServer(function(input, output, session) {
     train <- train_test[[1]]
     test <- train_test[[2]]
     
-    #scale data option
-    if(center == 1) {
-      newDataModel <- scale(newDataModel)
-    } 
+    # #scale data option
+    # if(center == 1) {
+    #   newDataModel <- scale(newDataModel)
+    # } 
     
     #create separate training and test data frames
     dfTrain <- newDataModel[train, ]
     dfTest <- newDataModel[test, ]
     
-    #formula step 1
+     #formula step 1
     if(input$varInteract == 1 & input$modelSelect == "Multiple Linear") {
       independent <- paste(input$varSelectModel, collapse = "*")
     } else {
@@ -276,10 +319,11 @@ shinyServer(function(input, output, session) {
     trctrl <- trainControl(method = "repeatedcv", number = input$folds, repeats = input$repeats)
     
     #tuning grid
-    gbmGrid <-  expand.grid(interaction.depth = c(1, 5, 9), 
-                            n.trees = input$numTrees, 
-                            shrinkage = 0.1,
-                            n.minobsinnode = 20)
+    gbmGrid <-  expand.grid(#interaction.depth = c(1, 5, 9), 
+                            n.trees = input$numTrees 
+                            #shrinkage = 0.1,
+                            #n.minobsinnode = 20
+                            )
     
     #fit models
     if(input$modelSelect == "Multiple Linear") {
@@ -320,6 +364,47 @@ shinyServer(function(input, output, session) {
     summary(plotModel()[[1]])
   }) #end summary output
   
+  #predict value output
+  observeEvent(input$predictButton, {
+    #var dependent
+    output$predictInfo <- renderText({
+      paste0("Prediction for ", input$varDependent)
+    })
+    
+    output$predictValue <- renderPrint({
+      total_points <- input$total_points
+      now_cost <- input$now_cost
+      points_per_game <- input$points_per_game
+      minutes <- input$minutes
+      goals_scored <- input$goals_scored
+      assists <- input$assists
+      bonus <- input$bonus
+      bps <- input$bps
+      goals_conceded <- input$goals_conceded
+      own_goals <- input$own_goals
+      penalties_missed <- input$penalties_missed
+      penalties_saved <- input$penalties_saved
+      yellow_cards <- input$yellow_cards
+      red_cards <- input$red_cards
+      saves <- input$saves
+      clean_sheets <- input$clean_sheets
+      creativity <- input$creativity
+      ict_index <- input$ict_index
+      influence <- input$influence
+      threat <- input$threat
+      selected_by_percent <- input$selected_by_percent
+      
+      newData <- as.data.frame(cbind(total_points, now_cost, points_per_game, minutes, goals_scored, assists, bonus, bps, goals_conceded, own_goals, 
+                       penalties_missed, penalties_saved, yellow_cards, red_cards, saves, clean_sheets, creativity, ict_index, influence, threat))
+      
+      fit<-plotModel()[[1]]
+
+      predict(fit, newData)
+      
+    }) #end predict value output
+  })
+ 
+  
   #plot download handler
   output$downloadModelPlot <- downloadHandler(
     filename = function() {
@@ -330,7 +415,10 @@ shinyServer(function(input, output, session) {
       if(input$modelSelect == "Multiple Linear"){
         plot(plotModel()[[1]], which = 1, main = "Multiple Linear Regression: Residuals vs Fitted Values")
       } else {
-        plot(summary(plotModel()[[1]]), main = "Boosted Trees Model: Relative Importance of Variables")
+        fitModel <- plotModel()[[1]]
+        predictValues <- predict(fitModel)
+        actualValues <- fitModel$finalModel$data$y
+        plot(predictValues-actualValues, ylab = "Residuals", xlab = "Fitted Values", main = "Boosted Trees Model: Residuals vs Fitted Values"); abline(h=0, lty=2)
       }
       dev.off()
     }
