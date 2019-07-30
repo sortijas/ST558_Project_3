@@ -148,7 +148,44 @@ shinyServer(function(input, output, session) {
       }
       
     } 
-  }) #end plot 
+  }) #end plot
+  
+  #y-axis summary output
+  output$summaryYExplore <- renderPrint({
+    newData <- getData()
+    summary <- newData %>% group_by(year, position) %>%  summarise(n = n(), Mean = mean(!! rlang::sym(input$varSelect)), Median = median(!! rlang::sym(input$varSelect)),
+                                     Min. = min(!! rlang::sym(input$varSelect)), Max. = max(!! rlang::sym(input$varSelect)),
+                                     "Std. Dev." = sd(!! rlang::sym(input$varSelect)))
+    as.data.frame(summary)
+
+  }) #end summary output
+  
+  #x-axis summary output
+  output$summaryXExplore <- renderPrint({
+    newData <- getData()
+    summary <- newData %>% group_by(year, position) %>% summarise(n = n(), Mean = mean(!! rlang::sym(input$varXSelect)), Median = median(!! rlang::sym(input$varXSelect)),
+                                     Min. = min(!! rlang::sym(input$varXSelect)), Max. = max(!! rlang::sym(input$varXSelect)),
+                                     "Std. Dev." = sd(!! rlang::sym(input$varXSelect)))
+    as.data.frame(summary)
+    
+  }) #end summary output
+  
+  #player summary
+  output$playerExplore <- renderPrint({
+    newData <- getData()
+    
+    playerNames <- c(input$playerSelect, input$compareSelect)
+    variables <- c(input$varSelect, input$varXSelect)
+
+    table <- newData %>% mutate(percentile_y = ecdf(!! rlang::sym(input$varSelect))(!! rlang::sym(input$varSelect)), percentile_x = ecdf(!! rlang::sym(input$varXSelect))(!! rlang::sym(input$varXSelect))) %>% filter(full_name %in% playerNames) %>% 
+      select(full_name, input$varSelect, percentile_y, input$varXSelect,percentile_x, year)
+    as.data.frame(table)  
+  })
+  
+  #text output headings
+  output$YSummary <-renderText(paste0(input$varSelect, " summary"))
+  
+  output$XSummary <-renderText(paste0(input$varXSelect, " summary"))
   
   #reactive year title
   yearTitle <- reactive({
@@ -199,6 +236,28 @@ shinyServer(function(input, output, session) {
     varList <- as.list(numVars)
     updateSelectInput(session, "varDependent", choices = varList, selected = "total_points")
   }) #end dependent variable user input
+  
+  #update plot outputs
+  observe({
+    if(input$modelSelect == "Multiple Linear Regression") {
+      updateSelectInput(session, "modelPlotSelect", choices = list("Residuals vs Fitted" = 1, "Normal Q-Q" = 2, 
+                                                                   "Scale-Location" = 3, "Cook's Distance" = 4, 
+                                                                   "Residuals vs Leverage" = 5, "Cook's Dist vs Leverage" = 6))
+    } else {
+      updateSelectInput(session, "modelPlotSelect", choices = list("Residuals vs Fitted" = 1, "RMSE vs Boosting Iterations" = 2, 
+                                                                   "Relative Influence" = 3))
+    }
+
+  }) #end plot outputs
+  
+  #update summary outputs
+  observe({
+    if(input$modelSelect == "Multiple Linear Regression") {
+      updateSelectInput(session, "modelSummarySelect", choices = list("Summary"))
+    } else {
+      updateSelectInput(session, "modelSummarySelect", choices = list("Relative Influence" = 1, "Tune Values" = 2))
+    }
+  })
   
   #independent variables
   observe({
@@ -272,13 +331,17 @@ shinyServer(function(input, output, session) {
   
   #Plot output
   output$Modelplot <- renderPlot(
-    if(input$modelSelect == "Multiple Linear"){
-      plot(plotModel()[[1]], which = 1, main = "Multiple Linear Regression: Residuals vs Fitted Values")
-    } else {
+    if(input$modelSelect == "Multiple Linear Regression"){
+      plot(plotModel()[[1]], which = as.numeric(input$modelPlotSelect), main = "Multiple Linear Regression")
+    } else if(input$modelPlotSelect == 1) {
       fitModel <- plotModel()[[1]]
       predictValues <- predict(fitModel)
       actualValues <- fitModel$finalModel$data$y
       plot(predictValues-actualValues, ylab = "Residuals", xlab = "Fitted Values", main = "Boosted Trees Model: Residuals vs Fitted Values"); abline(h=0, lty=2)
+    } else if(input$modelPlotSelect == 2) {
+      plot(plotModel()[[1]], main = "Boosted Trees Model: RMSE vs # Boosting Iterations")
+    } else {
+      plot(summary(plotModel()[[1]]), main = "Boosted Trees Model: Relative Influence")
     }
   ) #end plot output
   
@@ -301,7 +364,7 @@ shinyServer(function(input, output, session) {
     dfTest <- newDataModel[test, ]
     
      #formula step 1
-    if(input$varInteract == 1 & input$modelSelect == "Multiple Linear") {
+    if(input$varInteract == 1 & input$modelSelect == "Multiple Linear Regression") {
       independent <- paste(input$varSelectModel, collapse = "*")
     } else {
       independent <- paste(input$varSelectModel, collapse = "+")
@@ -321,7 +384,7 @@ shinyServer(function(input, output, session) {
                             )
     
     #fit models
-    if(input$modelSelect == "Multiple Linear") {
+    if(input$modelSelect == "Multiple Linear Regression") {
       #linear model
       fit <- lm(formula = as.formula(fm), data = as.data.frame(dfTrain))
     } else if(input$CV == 1){
@@ -346,22 +409,27 @@ shinyServer(function(input, output, session) {
   output$predictModel <- renderPrint({
     dfTest <- plotModel()[[2]]
     dependent <- as.data.frame(dfTest) %>% select(input$varDependent)
-    #get filtered data
     predict <- predict(plotModel()[[1]], newdata = as.data.frame(dfTest))
-    #sqrt(mean((predict-dependent)^2))
     error <- unlist(predict-dependent)
     sqrt(mean((error)^2))
   }) #end RMSE output
   
   #summary output
   output$summaryModel <- renderPrint({
-    #get filtered data
-    summary(plotModel()[[1]])
+    if(input$modelSelect == "Multiple Linear Regression"){
+      summary(plotModel()[[1]])
+    } else if(input$modelSummarySelect == 1) {
+      summary(plotModel()[[1]])
+    } else {
+      fit <- plotModel()[[1]]
+      fit$finalModel$tuneValue
+    }
+    
   }) #end summary output
   
   #predict value output
-  observeEvent(input$predictButton, {
-    #var dependent
+  observe({
+  #   #var dependent
     output$predictInfo <- renderText({
       paste0("Prediction for ", input$varDependent)
     })
@@ -394,8 +462,8 @@ shinyServer(function(input, output, session) {
       
       fit<-plotModel()[[1]]
 
-      predict(fit, newData)
-      
+      prediction <- predict(fit, newData)
+      as.vector(prediction)
     }) #end predict value output
   })
  
@@ -407,13 +475,17 @@ shinyServer(function(input, output, session) {
     },
     content = function(file) {
       png(file, width = 1200)
-      if(input$modelSelect == "Multiple Linear"){
-        plot(plotModel()[[1]], which = 1, main = "Multiple Linear Regression: Residuals vs Fitted Values")
-      } else {
+      if(input$modelSelect == "Multiple Linear Regression"){
+        plot(plotModel()[[1]], which = as.numeric(input$modelPlotSelect), main = "Multiple Linear Regression")
+      } else if(input$modelPlotSelect == 1) {
         fitModel <- plotModel()[[1]]
         predictValues <- predict(fitModel)
         actualValues <- fitModel$finalModel$data$y
         plot(predictValues-actualValues, ylab = "Residuals", xlab = "Fitted Values", main = "Boosted Trees Model: Residuals vs Fitted Values"); abline(h=0, lty=2)
+      } else if(input$modelPlotSelect == 2) {
+        plot(plotModel()[[1]], main = "Boosted Trees Model: RMSE vs # Boosting Iterations")
+      } else {
+        plot(summary(plotModel()[[1]]), main = "Boosted Trees Model: Relative Influence")
       }
       dev.off()
     }
@@ -487,12 +559,12 @@ shinyServer(function(input, output, session) {
       PCs <- prcomp(PCAData, center = FALSE, scale = FALSE)
     }
     
-    if(input$plotPCA == "Screeplot") {
+    if(input$plotPCA == "Scree plot") {
       #create plot
       fviz_eig(PCs, addlabels = TRUE)
     } else {
       #create plot
-      fviz_pca_biplot(PCs, axes = c(as.numeric(input$xVarPCA), as.numeric(input$yVarPCA)), repel = TRUE)
+      fviz_pca_biplot(PCs, axes = c(as.numeric(input$xVarPCA), as.numeric(input$yVarPCA)), label = "var", alpha = .5)
     }
     
   }) #end PCA plots reactive

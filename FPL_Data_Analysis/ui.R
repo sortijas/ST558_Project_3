@@ -105,25 +105,43 @@ body <- dashboardBody(
                          selectInput("varSelect", label = "Y-Axis Variable", 
                                      choices = NULL),
                          sliderInput("opacity", "Opacity",
-                                     min = 1, max = 5, step = 1, value = 3),
+                                     min = 1, max = 5, step = 1, value = 2),
                          sliderInput("jitter", "Jitter",
                                      min = 0, max = 10, step = 1, value = 1)
                      )
               ),
               column(9,
-                     box(width = 14,
+                     box(width = 12,
                          plotOutput("explorePlot", height = 500,
                                     brush = brushOpts(id = "plot_brush")
                          ),
                          downloadButton("downloadPlot", "Plot"),
                          downloadButton("downloadData", "Data")
-                     ),
+                     )
+              ),
+              column(4,
+                     h4(textOutput("YSummary")),
+                     verbatimTextOutput("summaryYExplore")
+              ),
+              column(4,
+                     conditionalPanel(
+                       condition = "input.graphSelect == 'Scatterplot'",
+                       h4(textOutput("XSummary")),
+                       verbatimTextOutput("summaryXExplore")
+                     )
+              ),
+              column(4,
                      conditionalPanel(
                        condition = "input.graphSelect == 'Scatterplot'",
                        h4("Selected graph region data"),
-                       verbatimTextOutput(("brush_info"))  
+                       verbatimTextOutput(("brush_info"))
                      )
+              ),
+              column(5,
+                     h4("Player summary"),
+                     verbatimTextOutput("playerExplore")
               )
+              
             )  
     ), #end graphs tab
     
@@ -138,7 +156,7 @@ body <- dashboardBody(
                                      choices = list("Defenders" = "DEF", "Forwards" = "FWD", "Midfielders" = "MID", "Goalkeepers" = "GK")),
                          selectInput("yearsPCA", "Season",
                                      choices = list(2017, 2018, 2019, 2020), selected = 2020),
-                         checkboxInput("varPCA", tags$b("Select Variables?"), value = FALSE),
+                         checkboxInput("varPCA", tags$b("Select Variables"), value = FALSE),
                          conditionalPanel(
                            condition = "input.varPCA == 1",
                            checkboxGroupInput("varSelectPCA", label = "Variables", 
@@ -146,7 +164,7 @@ body <- dashboardBody(
                          ),
                          checkboxInput("centerPCA", tags$b("Center and Scale Data"), value = TRUE),
                          selectInput("plotPCA", "Plot Type",
-                                     choices = list("Biplot","Screeplot"), selected = "Biplot"),
+                                     choices = list("Biplot","Scree plot"), selected = "Biplot"),
                          conditionalPanel(
                            condition = "input.plotPCA == 'Biplot'",
                            selectInput("xVarPCA", "X-Axis Principal Component",
@@ -188,7 +206,7 @@ body <- dashboardBody(
                                     selectInput("yearsModel", "Season",
                                                 choices = list(2017, 2018, 2019, 2020), selected = 2020),
                                     selectInput("modelSelect", label = "Model Type",
-                                                choices = list("Multiple Linear", "Boosted Trees")),
+                                                choices = list("Multiple Linear Regression", "Boosted Trees")),
                                     selectInput("varDependent", label = "Select Dependent Variable",
                                                 choices = NULL),
                                     checkboxInput("varModel", tags$b("Select Independent Variables"), value = FALSE),
@@ -201,7 +219,7 @@ body <- dashboardBody(
                                     sliderInput("train", "Training Data (% of data set)",
                                                 min = 50, max = 100, step = 5, value = 90),
                                     conditionalPanel(
-                                      condition = "input.modelSelect == 'Multiple Linear'",
+                                      condition = "input.modelSelect == 'Multiple Linear Regression'",
                                       checkboxInput("varInteract", tags$b("Interact Variables"), value = FALSE)
                                     ),
                                     conditionalPanel(
@@ -218,6 +236,12 @@ body <- dashboardBody(
                                         sliderInput("numTrees", "Trees", min = 50, max = 1000, step = 50, value = 500)
                                       )
                                     )
+                                ),
+                                box(width = 12, title = "Output Options",
+                                    selectInput("modelPlotSelect", "Plot",
+                                                choices = NULL),
+                                    selectInput("modelSummarySelect", "Summary",
+                                                choices = NULL)
                                 )
                          ),
                          column(9,
@@ -238,9 +262,9 @@ body <- dashboardBody(
                        fluidRow(
                          column(3,
                                 box(width = 12, title = "Select Player or Enter Values",
-                                    actionButton("predictButton", label = "Predict"),
-                                    br(),
-                                    br(),
+                                    # actionButton("predictButton", label = "Predict"),
+                                    # br(),
+                                    # br(),
                                     selectInput("playerSelectModel", label = "Player", 
                                                 choices = NULL),
                                     numericInput("total_points","total_points", value = NULL), #total_points
