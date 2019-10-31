@@ -12,7 +12,7 @@ library(caret)
 
 #epl 19-20
 epl20 <- read_csv("https://github.com/vaastav/Fantasy-Premier-League/raw/master/data/2019-20/players_raw.csv")
-epl20 <- epl20 %>% mutate(year = 2020)
+epl20 <- epl20 %>% mutate(year = 2020, ep_next=as.character(ep_next))
 
 #replace 'None' with NA
 epl20[epl20=="None"] <- NA
