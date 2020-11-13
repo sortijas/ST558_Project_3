@@ -10,6 +10,16 @@ library(caret)
 
 #Load data
 
+#epl 20-21
+epl21 <- read_csv("https://github.com/vaastav/Fantasy-Premier-League/raw/master/data/2020-21/players_raw.csv")
+epl21 <- epl21 %>% mutate(year = 2021, ep_next=as.character(ep_next))
+
+#replace 'None' with NA
+epl21[epl21=="None"] <- NA
+
+#change ep_this column to numeric
+epl21$ep_this <- as.numeric(epl21$ep_this)
+
 #epl 19-20
 epl20 <- read_csv("https://github.com/vaastav/Fantasy-Premier-League/raw/master/data/2019-20/players_raw.csv")
 epl20 <- epl20 %>% mutate(year = 2020, ep_next=as.character(ep_next))
@@ -32,7 +42,7 @@ epl18 <- epl18 %>% mutate(year = 2018)
 epl17 <- read_csv("https://github.com/vaastav/Fantasy-Premier-League/raw/master/data/2016-17/players_raw.csv")
 epl17 <- epl17 %>% mutate(year = 2017)
 
-epl <- bind_rows(epl17, epl18, epl19, epl20)
+epl <- bind_rows(epl17, epl18, epl19, epl20, epl21)
 
 #epl teams
 #eplTeams <- read_csv("https://github.com/vaastav/Fantasy-Premier-League/raw/master/data/2019-20/teams.csv")
